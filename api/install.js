@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     const { key, ip, pw, domPnl, domNode, ram } = req.body;
     
     // Ganti 'SATURNX_KEY' dengan key rahasia lo
-    if (key !== 'SATURNX_KEY') return res.status(401).json({ success: false, message: 'Invalid Access Key!' });
+    if (key !== 'KYXZAN') return res.status(401).json({ success: false, message: 'Invalid Access Key!' });
 
     const conn = new Client();
     
