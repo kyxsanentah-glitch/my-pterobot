@@ -1,4 +1,7 @@
 {
+  "name": "ptero-web-installer",
+  "version": "1.0.0",
+  "type": "module", 
   "dependencies": {
     "ssh2": "^1.15.0"
   }
