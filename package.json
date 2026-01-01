@@ -1,0 +1,10 @@
+{
+  "name": "pterodactyl-installer-bot",
+  "version": "1.0.0",
+  "main": "api/bot.js",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.64.0",
+    "ssh2": "^1.15.0",
+    "dotenv": "^16.4.0"
+  }
+}
