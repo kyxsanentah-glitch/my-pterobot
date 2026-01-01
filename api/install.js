@@ -1,20 +1,21 @@
-const { Client } = require('ssh2');
+import { Client } from 'ssh2';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).end();
     
     const { key, ip, pw, domPnl, domNode, ram } = req.body;
     
-    // Ganti 'SATURNX_KEY' dengan key rahasia lo
-    if (key !== 'KYXZAN') return res.status(401).json({ success: false, message: 'Invalid Access Key!' });
+    // Sesuaikan Access Key lo di sini
+    if (key !== 'SATURNX_KEY') {
+        return res.status(401).json({ success: false, message: 'Invalid Access Key!' });
+    }
 
     const conn = new Client();
     
     return new Promise((resolve) => {
         conn.on('ready', () => {
-            // Kita gabungkan script Install Panel + Wings + Create Node dalam satu command berantai
+            // Menggunakan heredoc untuk otomatisasi jawaban prompt bash
             const fullCommand = `nohup bash -c "
-            # Auto Install Panel
             bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 kyxzan
@@ -36,35 +37,6 @@ yes
 Y
 1
 EOF
-
-            # Auto Install Wings
-            bash <(curl -s https://pterodactyl-installer.se) <<EOF
-1
-y
-y
-y
-${domPnl}
-y
-kyxzan
-kyxzan
-y
-${domNode}
-y
-kyxzan@gmail.com
-y
-EOF
-
-            # Create Node logic
-            bash <(curl -s https://raw.githubusercontent.com/LeXcZxMoDz9/Installerlex/refs/heads/main/install.sh) <<EOF
-4
-kyxzan
-KELAZKINK
-${domNode}
-KELAZKINK
-${ram}
-${ram}
-1
-EOF
             " > install.log 2>&1 &`;
 
             conn.exec(fullCommand, (err) => {
@@ -74,7 +46,7 @@ EOF
                 }
                 res.status(200).json({ 
                     success: true, 
-                    message: 'Proses Instalasi telah dikirim! VPS sedang bekerja di background. Tunggu 5-10 menit lalu buka domain lo.' 
+                    message: 'Installation Triggered! Silahkan cek berkala domain anda.' 
                 });
                 conn.end();
                 resolve();
