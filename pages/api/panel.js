@@ -21,7 +21,6 @@ export default async function handler(req, res) {
           axios.get(`${cleanHost}/api/application/users?per_page=100`, { headers }),
           axios.get(`${cleanHost}/api/application/servers?per_page=100`, { headers })
         ]);
-        // Mengambil angka total asli dari metadata Pterodactyl
         res.json({ 
           total_users: u.data.meta.pagination.total, 
           total_servers: s.data.meta.pagination.total,
