@@ -8,7 +8,7 @@ import {
 
 export default function Home() {
   const [creds, setCreds] = useState(null);
-  const [data, setData] = useState({ users: [], servers: [] });
+  const [data, setData] = useState({ users: [], servers: [], total_users: 0, total_servers: 0 });
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('servers');
   const [searchTerm, setSearchTerm] = useState('');
@@ -193,15 +193,17 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
            <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between group hover:border-cyan-500/30 transition-all">
               <div>
+                 {/* Menggunakan data.total_servers agar akurat */}
                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Servers</p>
-                 <p className="text-5xl font-black text-white mt-1 group-hover:text-cyan-400 transition-colors">{data.servers.length}</p>
+                 <p className="text-5xl font-black text-white mt-1 group-hover:text-cyan-400 transition-colors">{data.total_servers || 0}</p>
               </div>
               <Cpu size={48} className="text-slate-700 group-hover:text-cyan-500/20 transition-all" />
            </div>
            <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between group hover:border-purple-500/30 transition-all">
               <div>
+                 {/* Menggunakan data.total_users agar akurat */}
                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Database Users</p>
-                 <p className="text-5xl font-black text-white mt-1 group-hover:text-purple-400 transition-colors">{data.users.length}</p>
+                 <p className="text-5xl font-black text-white mt-1 group-hover:text-purple-400 transition-colors">{data.total_users || 0}</p>
               </div>
               <Users size={48} className="text-slate-700 group-hover:text-purple-500/20 transition-all" />
            </div>
