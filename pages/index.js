@@ -1,24 +1,20 @@
-// pages/index.js
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
-  Terminal, Server, Users, Trash2, Power, 
-  LogOut, ShieldAlert, Activity, Key, Loader2 
+  Terminal, Server, Users, Trash2, LogOut, 
+  ShieldAlert, Activity, Key, Loader2, Globe, Cpu
 } from 'lucide-react';
 
 export default function Home() {
-  const [creds, setCreds] = useState(null); // { host, ptla, ptlc }
+  const [creds, setCreds] = useState(null);
   const [data, setData] = useState({ users: [], servers: [] });
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState('servers'); // 'servers' | 'users'
+  const [view, setView] = useState('servers');
 
-  // --- AUTH & INIT ---
   useEffect(() => {
     const saved = localStorage.getItem('saturnz_creds');
-    if (saved) {
-      setCreds(JSON.parse(saved));
-    }
+    if (saved) setCreds(JSON.parse(saved));
   }, []);
 
   useEffect(() => {
@@ -39,9 +35,9 @@ export default function Home() {
       await axios.post('/api/panel', { ...newCreds, action: 'check_connection' });
       localStorage.setItem('saturnz_creds', JSON.stringify(newCreds));
       setCreds(newCreds);
-      Swal.fire({ icon: 'success', title: 'Connected', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+      Swal.fire({ icon: 'success', title: 'ACCESS GRANTED', background: '#000', color: '#06b6d4' });
     } catch (err) {
-      Swal.fire('Connection Failed', 'Check URL or API Keys', 'error');
+      Swal.fire({ icon: 'error', title: 'CONNECTION REFUSED', text: 'Invalid Host or API Key', background: '#000', color: '#f87171' });
     }
     setLoading(false);
   };
@@ -49,229 +45,162 @@ export default function Home() {
   const logout = () => {
     localStorage.removeItem('saturnz_creds');
     setCreds(null);
-    setData({ users: [], servers: [] });
   };
 
-  // --- API CALLER ---
   const callApi = async (action, payload = {}) => {
-    if (!creds) return;
     setLoading(true);
     try {
       const res = await axios.post('/api/panel', { ...creds, action, payload });
       if (action !== 'get_stats') {
-        Swal.fire({ icon: 'success', title: 'Success', text: res.data.msg || 'Action executed', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
-        fetchData(); // Refresh data after action
+        Swal.fire({ icon: 'success', title: 'SUCCESS', text: res.data.msg || 'Done', background: '#000', color: '#06b6d4', timer: 1500 });
+        fetchData();
       } else {
         setData(res.data);
       }
     } catch (err) {
-      console.error(err);
-      Swal.fire('Error', err.response?.data?.error || err.message, 'error');
+      Swal.fire({ icon: 'error', title: 'ERROR', text: err.response?.data?.error || 'Operation Failed', background: '#000', color: '#f87171' });
     }
     setLoading(false);
   };
 
   const fetchData = () => callApi('get_stats');
 
-  // --- ACTIONS ---
-  const handleCreateUser = async () => {
-    const { value: form } = await Swal.fire({
-      title: 'New User',
-      html: `
-        <input id="u" class="swal2-input" placeholder="Username">
-        <input id="e" class="swal2-input" placeholder="Email">
-        <input id="p" class="swal2-input" type="password" placeholder="Password">
-      `,
-      background: '#1f2937', color: '#fff',
-      preConfirm: () => ({
-        username: document.getElementById('u').value,
-        email: document.getElementById('e').value,
-        password: document.getElementById('p').value
-      })
-    });
-    if (form) callApi('create_user', form);
-  };
-
-  const handleCreateServer = async () => {
-    const userId = prompt("Enter Owner User ID:");
-    if (!userId) return;
-    const { value: name } = await Swal.fire({ 
-        title: 'Server Name', input: 'text', background: '#1f2937', color: '#fff' 
-    });
-    if (name) callApi('create_server', { name, userId });
-  };
-
-  const handleNuke = () => {
-    Swal.fire({
-      title: 'NUKE PROTOCOL',
-      text: "Delete ALL Servers & Users? (Admins safe)",
-      icon: 'warning',
-      background: '#000', color: '#f87171',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      confirmButtonText: 'EXECUTE'
-    }).then((r) => {
-      if (r.isConfirmed) callApi('nuke_all', { confirm: 'CONFIRM' });
-    });
-  };
-
-  // --- UI COMPONENTS ---
   if (!creds) return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4 font-mono relative overflow-hidden">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-      <div className="absolute top-0 left-0 w-64 h-64 bg-cyan-500 rounded-full blur-[100px] opacity-20 animate-pulse"></div>
-      
-      <form onSubmit={handleLogin} className="relative z-10 w-full max-w-md bg-gray-900/80 backdrop-blur-xl border border-gray-800 p-8 rounded-2xl shadow-2xl shadow-cyan-900/20">
-        <div className="flex justify-center mb-6">
-          <Terminal size={48} className="text-cyan-400" />
-        </div>
-        <h1 className="text-2xl font-bold text-center text-white mb-2">SATURNZ-X <span className="text-cyan-400">CONNECT</span></h1>
-        <p className="text-center text-gray-500 mb-6 text-xs">PTERODACTYL REMOTE GATEWAY</p>
-        
-        <div className="space-y-4">
-          <input name="host" required placeholder="Panel URL (https://panel.example.com)" className="w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition" />
-          <input name="ptla" required placeholder="PTLA (Application API Key)" className="w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition" />
-          <input name="ptlc" placeholder="PTLC (Client API Key - Optional for Nuke)" className="w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition" />
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 font-mono relative overflow-hidden text-white">
+      {/* Background Glow */}
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-cyan-900/20 rounded-full blur-[120px]"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px]"></div>
+
+      <div className="z-10 w-full max-w-md">
+        <div className="bg-gray-900/40 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+              <Terminal size={32} className="text-cyan-400" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tighter text-white">SATURNZ<span className="text-cyan-500">-X</span></h1>
+            <p className="text-gray-500 text-xs mt-1 tracking-widest uppercase">Pterodactyl Bypass Gateway</p>
+          </div>
           
-          <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-3 rounded-lg transition flex justify-center items-center gap-2">
-            {loading ? <Loader2 className="animate-spin" /> : <Key size={18} />} ACCESS PANEL
-          </button>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-[10px] text-cyan-500 uppercase font-bold ml-1">Panel Endpoint</label>
+              <input name="host" required placeholder="https://panel.example.com" className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500/50 focus:outline-none transition-all placeholder:text-gray-700" />
+            </div>
+            <div>
+              <label className="text-[10px] text-cyan-500 uppercase font-bold ml-1">Application Key (PTLA)</label>
+              <input name="ptla" required placeholder="ptla_xxxxxxxx" className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500/50 focus:outline-none transition-all placeholder:text-gray-700" />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase font-bold ml-1">Client Key (PTLC - Optional)</label>
+              <input name="ptlc" placeholder="ptlc_xxxxxxxx" className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500/50 focus:outline-none transition-all placeholder:text-gray-700" />
+            </div>
+            
+            <button type="submit" disabled={loading} className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all flex justify-center items-center gap-2 mt-6 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+              {loading ? <Loader2 className="animate-spin" /> : <Key size={18} />} ACCESS SYSTEM
+            </button>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-black text-gray-300 font-sans selection:bg-cyan-500 selection:text-black">
-      {/* BACKGROUND FX */}
-      <div className="fixed inset-0 pointer-events-none">
-         <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-purple-600 rounded-full blur-[120px] opacity-20"></div>
-         <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-cyan-600 rounded-full blur-[120px] opacity-20"></div>
+    <div className="min-h-screen bg-[#050505] text-gray-300 font-sans selection:bg-cyan-500 selection:text-black">
+      <div className="fixed inset-0 pointer-events-none opacity-40">
+         <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[120px]"></div>
+         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-8">
-        
-        {/* HEADER */}
-        <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
-              <Terminal className="text-cyan-400" size={28} />
+      <div className="relative z-10 max-w-6xl mx-auto p-4 md:p-10">
+        <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 bg-white/5 p-6 rounded-3xl border border-white/5 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-cyan-500/10 rounded-2xl border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+              <Terminal className="text-cyan-400" size={24} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">SATURNZ-X</h1>
-              <div className="flex items-center gap-2 text-xs text-cyan-500">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                </span>
-                SYSTEM ONLINE
+              <h1 className="text-2xl font-black text-white tracking-tighter">SATURNZ-X <span className="text-cyan-500 text-sm font-mono tracking-normal">MANAGER</span></h1>
+              <div className="flex items-center gap-2 text-[10px] text-cyan-500 font-bold uppercase tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                System Authorized
               </div>
             </div>
           </div>
-          
           <div className="flex gap-3">
-             <button onClick={() => callApi('delete_offline')} className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500/20 transition text-sm font-medium">
-               <Activity size={16} /> Prune Offline
+             <button onClick={() => callApi('delete_offline')} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-orange-500/10 hover:border-orange-500/50 hover:text-orange-400 transition-all text-xs font-bold uppercase tracking-wider">
+               <Activity size={14} /> Prune Offline
              </button>
-             <button onClick={handleNuke} className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium">
-               <ShieldAlert size={16} /> NUKE
-             </button>
-             <button onClick={logout} className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 text-gray-400 rounded-lg hover:bg-gray-700 transition text-sm">
-               <LogOut size={16} />
+             <button onClick={logout} className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+               <LogOut size={18} />
              </button>
           </div>
         </header>
 
-        {/* STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-gray-900/50 backdrop-blur border border-gray-800 p-6 rounded-xl flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">ACTIVE SERVERS</p>
-              <p className="text-4xl font-bold text-white mt-1">{data.servers.length}</p>
-            </div>
-            <Server className="text-gray-600" size={40} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          <div className="group bg-gradient-to-br from-gray-900/50 to-black/50 border border-white/5 p-8 rounded-3xl hover:border-cyan-500/30 transition-all relative overflow-hidden">
+            <Server className="absolute right-[-20px] bottom-[-20px] text-white/5 group-hover:text-cyan-500/10 transition-all" size={150} />
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Active Nodes</p>
+            <p className="text-6xl font-black text-white mt-2">{data.servers.length}</p>
           </div>
-          <div className="bg-gray-900/50 backdrop-blur border border-gray-800 p-6 rounded-xl flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">REGISTERED USERS</p>
-              <p className="text-4xl font-bold text-white mt-1">{data.users.length}</p>
-            </div>
-            <Users className="text-gray-600" size={40} />
+          <div className="group bg-gradient-to-br from-gray-900/50 to-black/50 border border-white/5 p-8 rounded-3xl hover:border-purple-500/30 transition-all relative overflow-hidden">
+            <Users className="absolute right-[-20px] bottom-[-20px] text-white/5 group-hover:text-purple-500/10 transition-all" size={150} />
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Database Users</p>
+            <p className="text-6xl font-black text-white mt-2">{data.users.length}</p>
           </div>
         </div>
 
-        {/* CONTROLS */}
-        <div className="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-          <div className="flex border-b border-gray-800">
-            <button 
-              onClick={() => setView('servers')}
-              className={`flex-1 py-4 text-sm font-bold flex justify-center items-center gap-2 ${view === 'servers' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-500' : 'text-gray-500 hover:bg-gray-800'}`}
-            >
-              <Server size={18} /> SERVERS
-            </button>
-            <button 
-              onClick={() => setView('users')}
-              className={`flex-1 py-4 text-sm font-bold flex justify-center items-center gap-2 ${view === 'users' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-500' : 'text-gray-500 hover:bg-gray-800'}`}
-            >
-              <Users size={18} /> USERS
-            </button>
+        <div className="bg-gray-900/30 border border-white/5 rounded-[40px] overflow-hidden backdrop-blur-xl">
+          <div className="flex bg-black/20 p-2">
+            <button onClick={() => setView('servers')} className={`flex-1 py-4 rounded-2xl text-xs font-black tracking-widest transition-all ${view === 'servers' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-500 hover:text-white'}`}>SERVERS</button>
+            <button onClick={() => setView('users')} className={`flex-1 py-4 rounded-2xl text-xs font-black tracking-widest transition-all ${view === 'users' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-500 hover:text-white'}`}>USERS</button>
           </div>
 
-          <div className="p-6">
-            <div className="flex justify-end mb-4">
-              <button 
-                onClick={view === 'servers' ? handleCreateServer : handleCreateUser} 
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-black font-bold rounded-lg text-sm transition shadow-[0_0_15px_rgba(8,145,178,0.5)]"
-              >
-                + CREATE NEW {view === 'servers' ? 'SERVER' : 'USER'}
-              </button>
+          <div className="p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-xl font-black text-white">MAPPING {view.toUpperCase()}</h3>
+              <button onClick={view === 'servers' ? () => {} : () => {}} className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black tracking-widest uppercase">Create {view.slice(0, -1)}</button>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                    <th className="p-3">ID</th>
-                    <th className="p-3">{view === 'servers' ? 'Name' : 'Email'}</th>
-                    <th className="p-3">{view === 'servers' ? 'Owner ID' : 'Role'}</th>
-                    <th className="p-3 text-right">Action</th>
+                  <tr className="text-gray-500 text-[10px] uppercase tracking-[0.2em] border-b border-white/5">
+                    <th className="pb-4 px-2">Identification</th>
+                    <th className="pb-4 px-2">{view === 'servers' ? 'Label' : 'Email Address'}</th>
+                    <th className="pb-4 px-2">Authority</th>
+                    <th className="pb-4 px-2 text-right">Delete</th>
                   </tr>
                 </thead>
-                <tbody className="text-sm">
+                <tbody className="divide-y divide-white/5">
                   {(view === 'servers' ? data.servers : data.users).map((item) => (
-                    <tr key={item.attributes.id} className="border-b border-gray-800/50 hover:bg-white/5 transition group">
-                      <td className="p-3 font-mono text-cyan-600">#{item.attributes.id}</td>
-                      <td className="p-3 font-medium text-white">
+                    <tr key={item.attributes.id} className="group hover:bg-white/[0.02] transition-all">
+                      <td className="py-5 px-2 font-mono text-cyan-500 text-xs">#{item.attributes.id}</td>
+                      <td className="py-5 px-2 font-bold text-white text-sm">
                         {view === 'servers' ? item.attributes.name : item.attributes.email}
                       </td>
-                      <td className="p-3 text-gray-400">
-                        {view === 'servers' 
-                          ? `User: ${item.attributes.user}` 
-                          : (item.attributes.root_admin ? <span className="text-purple-400 font-bold">ADMIN</span> : 'User')
-                        }
+                      <td className="py-5 px-2">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${item.attributes.root_admin ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-800 text-gray-400'}`}>
+                          {view === 'servers' ? `Node: ${item.attributes.node}` : (item.attributes.root_admin ? 'ROOT' : 'MEMBER')}
+                        </span>
                       </td>
-                      <td className="p-3 text-right">
-                        {/* Protect Admin Deletion */}
+                      <td className="py-5 px-2 text-right">
                         {!(view === 'users' && item.attributes.root_admin) && (
-                          <button 
-                            onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })}
-                            className="text-gray-600 hover:text-red-500 transition p-2 bg-gray-900 rounded-md opacity-0 group-hover:opacity-100"
-                          >
+                          <button onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })} className="p-2 text-gray-600 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100">
                             <Trash2 size={16} />
                           </button>
                         )}
                       </td>
                     </tr>
                   ))}
-                  {(view === 'servers' ? data.servers : data.users).length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="text-center py-10 text-gray-600 italic">No data found in {view}.</td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
           </div>
+        </div>
+        
+        <div className="mt-10 text-center">
+            <button onClick={() => callApi('nuke_all', { confirm: 'CONFIRM' })} className="text-[10px] font-black tracking-[0.3em] text-red-900 hover:text-red-500 transition-all uppercase">
+              [ Initiate Terminal Wipeout Protocol ]
+            </button>
         </div>
       </div>
     </div>
