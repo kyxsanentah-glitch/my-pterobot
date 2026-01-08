@@ -35,7 +35,13 @@ export default function Home() {
         setData(res.data);
       }
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'SYSTEM ERROR', text: err.response?.data?.detail || err.message, background: '#000', color: '#f87171' });
+      Swal.fire({ 
+        icon: 'error', 
+        title: 'SYSTEM ERROR', 
+        text: err.response?.data?.detail || err.message, 
+        background: '#000', 
+        color: '#f87171' 
+      });
     } finally {
       setLoading(false);
     }
@@ -44,7 +50,11 @@ export default function Home() {
   const handleLogin = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const newCreds = { host: formData.get('host'), ptla: formData.get('ptla'), ptlc: formData.get('ptlc') };
+    const newCreds = { 
+      host: formData.get('host'), 
+      ptla: formData.get('ptla'), 
+      ptlc: formData.get('ptlc') 
+    };
 
     try {
       setLoading(true);
@@ -58,7 +68,6 @@ export default function Home() {
     }
   };
 
-  // --- FITUR UTAMA: QUICK DEPLOY + AUTO COPY ---
   const handleAutoDeploy = async () => {
     const { value: formValues } = await Swal.fire({
       title: 'QUICK DEPLOY (NODEJS)',
@@ -80,10 +89,7 @@ export default function Home() {
     if (formValues) {
       const result = await callApi('auto_deploy', formValues);
       if (result) {
-        // FITUR AUTO COPY KE CLIPBOARD
         navigator.clipboard.writeText(result.detail);
-
-        // Notifikasi Toast
         Swal.fire({
           icon: 'success',
           title: 'DEPLOYED & COPIED',
@@ -115,10 +121,12 @@ export default function Home() {
           <h1 className="text-2xl font-black">SATURNZ-X LOGIN</h1>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
-          <input name="host" required placeholder="Panel URL" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none" />
-          <input name="ptla" required placeholder="API Key (PTLA)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none" />
-          <input name="ptlc" placeholder="API Key (PTLC)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none" />
-          <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-black py-4 rounded-xl transition-all">CONNECT SYSTEM</button>
+          <input name="host" required placeholder="Panel URL" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
+          <input name="ptla" required placeholder="API Key (PTLA)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
+          <input name="ptlc" placeholder="API Key (PTLC) - Opsional" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
+          <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-black py-4 rounded-xl transition-all flex justify-center items-center">
+            {loading ? <Loader2 className="animate-spin" /> : 'CONNECT SYSTEM'}
+          </button>
         </form>
       </div>
     </div>
@@ -132,21 +140,37 @@ export default function Home() {
         @keyframes blink { from, to { border-color: transparent } 50% { border-color: #06b6d4 } }
       `}</style>
 
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/5 p-6 rounded-3xl border border-white/5">
+      <div className="max-w-6xl mx-auto relative z-10">
+        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/5 p-6 rounded-3xl border border-white/5 backdrop-blur-md">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-2xl"><Terminal size={24} /></div>
             <div>
               <h1 className="text-2xl font-black text-white typewriter">SATURNZ-X MANAGER</h1>
-              <p className="text-[9px] text-cyan-500 tracking-widest font-bold">NODEJS DEPLOYMENT READY</p>
+              <p className="text-[9px] text-cyan-500 tracking-widest font-bold uppercase">NodeJS Deployer Active</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-center">
             <button onClick={handleAutoDeploy} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-black rounded-xl text-xs font-black transition-all shadow-lg shadow-cyan-900/20">
               <Zap size={14} fill="currentColor" /> QUICK DEPLOY
             </button>
             <button onClick={() => callApi('delete_offline')} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-orange-500/20 hover:text-orange-400 transition-all text-[10px] font-bold">PRUNE</button>
-            <button onClick={logout} className="p-2.5 bg-red-900/20 text-red-500 border border-red-900/30 rounded-xl hover:bg-red-500 hover:text-white transition-all"><LogOut size={18} /></button>
+            <button onClick={() => 
+              Swal.fire({
+                title: 'NUKE PANEL', 
+                text: 'Hapus SEMUA Server & User (Kecuali Admin)?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'CONFIRM NUKE',
+                background: '#000',
+                color: '#f87171'
+              }).then((res) => {
+                if(res.isConfirmed) callApi('nuke_all', { confirm: 'CONFIRM' });
+              })
+            } className="px-4 py-2 bg-red-900/10 border border-red-900/30 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-all text-[10px] font-bold">
+              NUKE
+            </button>
+            <button onClick={logout} className="p-2.5 bg-gray-800 text-gray-400 border border-gray-700 rounded-xl hover:bg-white hover:text-black transition-all"><LogOut size={18} /></button>
           </div>
         </header>
 
@@ -158,7 +182,7 @@ export default function Home() {
             placeholder={`Filter ${view}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-cyan-500/30 outline-none transition-all"
+            className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-cyan-500/30 outline-none transition-all placeholder:text-gray-700"
           />
         </div>
 
@@ -177,18 +201,25 @@ export default function Home() {
                   <th className="pb-4 px-2 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white/5 text-sm">
                 {filteredItems.map((item) => (
                   <tr key={item.attributes.id} className="group hover:bg-white/[0.02] transition-all">
                     <td className="py-4 px-2 font-mono text-cyan-600 text-xs">#{item.attributes.id}</td>
-                    <td className="py-4 px-2 font-bold text-white text-sm">
+                    <td className="py-4 px-2 font-bold text-white">
                       {view === 'servers' ? item.attributes.name : item.attributes.email}
                     </td>
                     <td className="py-4 px-2 text-right">
-                      <button onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })} className="p-2 text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
+                      <button onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })} className="p-2 text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all transition-all">
+                        <Trash2 size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}
+                {filteredItems.length === 0 && (
+                  <tr>
+                    <td colSpan="3" className="text-center py-10 text-gray-600 text-xs tracking-widest italic">NO MATCHING DATA FOUND</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
