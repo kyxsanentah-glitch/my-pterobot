@@ -13,6 +13,7 @@ export default function Home() {
   const [view, setView] = useState('servers');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // --- INIT DATA ---
   useEffect(() => {
     const saved = localStorage.getItem('saturnz_creds');
     if (saved) setCreds(JSON.parse(saved));
@@ -24,6 +25,7 @@ export default function Home() {
 
   const fetchData = () => callApi('get_stats');
 
+  // --- API HANDLER ---
   const callApi = async (action, payload = {}) => {
     setLoading(true);
     try {
@@ -62,26 +64,33 @@ export default function Home() {
       localStorage.setItem('saturnz_creds', JSON.stringify(newCreds));
       setCreds(newCreds);
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'REFUSED', background: '#000', color: '#f87171' });
+      Swal.fire({ icon: 'error', title: 'CONNECTION REFUSED', text: 'Cek URL atau API Key', background: '#000', color: '#f87171' });
     } finally {
       setLoading(false);
     }
   };
 
+  const logout = () => { localStorage.removeItem('saturnz_creds'); setCreds(null); };
+
+  // --- FITUR: QUICK DEPLOY (MANUAL INPUT + AUTO COPY) ---
   const handleAutoDeploy = async () => {
     const { value: formValues } = await Swal.fire({
       title: 'QUICK DEPLOY (NODEJS)',
       html:
-        '<input id="sw-user" class="swal2-input" placeholder="Username" style="background:#000; color:#06b6d4; border:1px solid #333; font-family:monospace;">' +
-        '<input id="sw-pass" class="swal2-input" type="password" placeholder="Password" style="background:#000; color:#06b6d4; border:1px solid #333; font-family:monospace;">',
+        '<label style="color:#06b6d4; font-size:12px; display:block; text-align:left;">USERNAME</label>' +
+        '<input id="sw-user" class="swal2-input" placeholder="ex: saturnz" style="background:#111; color:#fff; border:1px solid #333; margin-top:5px;">' +
+        '<label style="color:#06b6d4; font-size:12px; display:block; text-align:left; margin-top:10px;">PASSWORD</label>' +
+        '<input id="sw-pass" class="swal2-input" type="password" placeholder="***" style="background:#111; color:#fff; border:1px solid #333; margin-top:5px;">',
       background: '#050505',
       color: '#06b6d4',
       showCancelButton: true,
-      confirmButtonText: 'EXECUTE DEPLOY',
+      confirmButtonText: 'EXECUTE',
+      confirmButtonColor: '#06b6d4',
+      cancelButtonColor: '#333',
       preConfirm: () => {
         const username = document.getElementById('sw-user').value;
         const password = document.getElementById('sw-pass').value;
-        if (!username || !password) return Swal.showValidationMessage('Isi semua kolom!');
+        if (!username || !password) return Swal.showValidationMessage('Isi Username & Password!');
         return { username, password };
       }
     });
@@ -98,7 +107,7 @@ export default function Home() {
           color: '#06b6d4',
           toast: true,
           position: 'top-end',
-          timer: 4000,
+          timer: 5000,
           showConfirmButton: false,
           timerProgressBar: true
         });
@@ -106,25 +115,63 @@ export default function Home() {
     }
   };
 
-  const logout = () => { localStorage.removeItem('saturnz_creds'); setCreds(null); };
+  // --- FITUR: PRUNE OFFLINE (VALIDASI PTLC) ---
+  const handlePrune = () => {
+    if (!creds.ptlc) {
+      return Swal.fire({
+        icon: 'error',
+        title: 'PTLC MISSING',
+        text: 'Masukkan Client API Key (PTLC) saat login untuk menggunakan fitur ini.',
+        background: '#000',
+        color: '#f87171'
+      });
+    }
 
+    Swal.fire({
+      title: 'PRUNE PROTOCOL',
+      text: 'Scan & Hapus semua server OFFLINE?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#333',
+      confirmButtonText: 'START SCAN',
+      background: '#050505',
+      color: '#fff'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const res = await callApi('delete_offline');
+        if (res) {
+          Swal.fire({
+            title: 'CLEANUP REPORT',
+            text: res.msg,
+            icon: 'success',
+            background: '#000',
+            color: '#06b6d4'
+          });
+        }
+      }
+    });
+  };
+
+  // --- FILTER SEARCH ---
   const filteredItems = (view === 'servers' ? data.servers : data.users).filter(item => {
     const name = view === 'servers' ? item.attributes.name : item.attributes.email;
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  // --- RENDER LOGIN SCREEN ---
   if (!creds) return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 font-mono text-white">
-      <div className="w-full max-w-md bg-gray-900/40 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl">
+      <div className="w-full max-w-md bg-gray-900/40 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-2xl">
         <div className="flex flex-col items-center mb-6">
           <Terminal size={40} className="text-cyan-400 mb-2 animate-pulse" />
-          <h1 className="text-2xl font-black">SATURNZ-X LOGIN</h1>
+          <h1 className="text-2xl font-black tracking-tighter">SATURNZ-X LOGIN</h1>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
-          <input name="host" required placeholder="Panel URL" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
+          <input name="host" required placeholder="Panel URL (https://panel.xy.com)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
           <input name="ptla" required placeholder="API Key (PTLA)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
-          <input name="ptlc" placeholder="API Key (PTLC) - Opsional" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
-          <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-black py-4 rounded-xl transition-all flex justify-center items-center">
+          <input name="ptlc" placeholder="API Key (PTLC) - Opsional (Wajib utk Prune)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
+          <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-black py-4 rounded-xl transition-all flex justify-center items-center gap-2">
             {loading ? <Loader2 className="animate-spin" /> : 'CONNECT SYSTEM'}
           </button>
         </form>
@@ -132,6 +179,7 @@ export default function Home() {
     </div>
   );
 
+  // --- RENDER DASHBOARD ---
   return (
     <div className="min-h-screen bg-[#050505] text-gray-300 font-sans p-4 md:p-10 relative overflow-hidden">
       <style jsx>{`
@@ -141,6 +189,8 @@ export default function Home() {
       `}</style>
 
       <div className="max-w-6xl mx-auto relative z-10">
+        
+        {/* HEADER */}
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/5 p-6 rounded-3xl border border-white/5 backdrop-blur-md">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-2xl"><Terminal size={24} /></div>
@@ -150,10 +200,18 @@ export default function Home() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap justify-center">
+            
+            {/* Quick Deploy */}
             <button onClick={handleAutoDeploy} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-black rounded-xl text-xs font-black transition-all shadow-lg shadow-cyan-900/20">
               <Zap size={14} fill="currentColor" /> QUICK DEPLOY
             </button>
-            <button onClick={() => callApi('delete_offline')} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-orange-500/20 hover:text-orange-400 transition-all text-[10px] font-bold">PRUNE</button>
+            
+            {/* Prune Offline */}
+            <button onClick={handlePrune} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-orange-500/20 hover:text-orange-400 transition-all text-[10px] font-bold">
+              PRUNE
+            </button>
+            
+            {/* Nuke All */}
             <button onClick={() => 
               Swal.fire({
                 title: 'NUKE PANEL', 
@@ -161,6 +219,7 @@ export default function Home() {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
+                cancelButtonColor: '#333',
                 confirmButtonText: 'CONFIRM NUKE',
                 background: '#000',
                 color: '#f87171'
@@ -170,7 +229,11 @@ export default function Home() {
             } className="px-4 py-2 bg-red-900/10 border border-red-900/30 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-all text-[10px] font-bold">
               NUKE
             </button>
-            <button onClick={logout} className="p-2.5 bg-gray-800 text-gray-400 border border-gray-700 rounded-xl hover:bg-white hover:text-black transition-all"><LogOut size={18} /></button>
+
+            {/* Logout */}
+            <button onClick={logout} className="p-2.5 bg-gray-800 text-gray-400 border border-gray-700 rounded-xl hover:bg-white hover:text-black transition-all">
+              <LogOut size={18} />
+            </button>
           </div>
         </header>
 
@@ -186,6 +249,7 @@ export default function Home() {
           />
         </div>
 
+        {/* DATA TABLE */}
         <div className="bg-gray-900/30 border border-white/5 rounded-[32px] overflow-hidden backdrop-blur-xl">
           <div className="flex bg-black/40 p-1.5 gap-1.5">
             <button onClick={() => setView('servers')} className={`flex-1 py-3 rounded-2xl text-[10px] font-black tracking-widest transition-all ${view === 'servers' ? 'bg-cyan-500 text-black' : 'text-gray-500'}`}>SERVERS ({data.servers.length})</button>
@@ -209,7 +273,10 @@ export default function Home() {
                       {view === 'servers' ? item.attributes.name : item.attributes.email}
                     </td>
                     <td className="py-4 px-2 text-right">
-                      <button onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })} className="p-2 text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all transition-all">
+                      <button 
+                        onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })} 
+                        className="p-2 text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                      >
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -224,6 +291,7 @@ export default function Home() {
             </table>
           </div>
         </div>
+        
       </div>
     </div>
   );
