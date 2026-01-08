@@ -3,7 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
   Terminal, Server, Users, Trash2, LogOut, 
-  ShieldAlert, Activity, Key, Loader2, Search, X, Zap, Cpu, Globe, Rocket
+  ShieldAlert, Activity, Key, Loader2, Search, X, Zap, Cpu, Globe, Rocket, Hash
 } from 'lucide-react';
 
 export default function Home() {
@@ -92,34 +92,14 @@ export default function Home() {
       const result = await callApi('auto_deploy', formValues);
       if (result) {
         navigator.clipboard.writeText(result.detail);
-        Swal.fire({
-          icon: 'success',
-          title: 'UPLINK SUCCESS',
-          text: 'Credentials copied to clipboard.',
-          background: '#020617',
-          color: '#22d3ee',
-          toast: true,
-          position: 'top-end',
-          timer: 4000,
-          showConfirmButton: false
-        });
+        Swal.fire({ icon: 'success', title: 'UPLINK SUCCESS', text: 'Credentials copied to clipboard.', background: '#020617', color: '#22d3ee', toast: true, position: 'top-end', timer: 4000, showConfirmButton: false });
       }
     }
   };
 
   const handlePrune = () => {
     if (!creds.ptlc) return Swal.fire({ icon: 'error', title: 'PTLC MISSING', text: 'Client API Key required.', background: '#050505', color: '#f87171' });
-
-    Swal.fire({
-      title: 'PRUNE SYSTEM?',
-      text: 'Destroy all dead/offline nodes permanently?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ea580c',
-      confirmButtonText: 'CLEANUP',
-      background: '#020617',
-      color: '#fff'
-    }).then(async (result) => {
+    Swal.fire({ title: 'PRUNE SYSTEM?', text: 'Destroy all dead/offline nodes permanently?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ea580c', confirmButtonText: 'CLEANUP', background: '#020617', color: '#fff' }).then(async (result) => {
       if (result.isConfirmed) {
         const res = await callApi('delete_offline');
         if (res) Swal.fire({ title: 'LOG REPORT', text: res.msg, icon: 'success', background: '#020617', color: '#22d3ee' });
@@ -193,15 +173,14 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
            <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between group hover:border-cyan-500/30 transition-all">
               <div>
-                 {/* Menggunakan data.total_servers agar akurat */}
                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Servers</p>
+                 {/* Ini angka total fisik server yang ada */}
                  <p className="text-5xl font-black text-white mt-1 group-hover:text-cyan-400 transition-colors">{data.total_servers || 0}</p>
               </div>
               <Cpu size={48} className="text-slate-700 group-hover:text-cyan-500/20 transition-all" />
            </div>
            <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between group hover:border-purple-500/30 transition-all">
               <div>
-                 {/* Menggunakan data.total_users agar akurat */}
                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Database Users</p>
                  <p className="text-5xl font-black text-white mt-1 group-hover:text-purple-400 transition-colors">{data.total_users || 0}</p>
               </div>
@@ -225,14 +204,18 @@ export default function Home() {
              <table className="w-full text-left border-collapse">
                <thead>
                  <tr className="bg-white/5 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/5">
-                   <th className="p-5">Node ID</th>
+                   <th className="p-5">No.</th> {/* Nomor urut buat lu cek akurasi */}
+                   <th className="p-5">Node ID</th> {/* ID asli dari Panel */}
                    <th className="p-5">Designation</th>
                    <th className="p-5 text-right">Operation</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-white/5 text-sm">
-                 {filteredItems.map((item) => (
+                 {filteredItems.map((item, index) => (
                    <tr key={item.attributes.id} className="group hover:bg-white/[0.02] transition-colors">
+                     {/* Nomor urut 1, 2, 3... */}
+                     <td className="p-5 font-bold text-slate-500 text-xs">{index + 1}</td>
+                     {/* ID asli database #1, #2, #5, #30... */}
                      <td className="p-5 font-mono text-cyan-500 text-xs tracking-tighter">#{item.attributes.id}</td>
                      <td className="p-5 font-bold text-white uppercase text-xs tracking-wide">
                         {view === 'servers' ? item.attributes.name : item.attributes.email}
