@@ -3,7 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
   Terminal, Server, Users, Trash2, LogOut, 
-  ShieldAlert, Activity, Key, Loader2, Search, X, Zap, Copy
+  ShieldAlert, Activity, Key, Loader2, Search, X, Zap, Copy, Cpu, Globe
 } from 'lucide-react';
 
 export default function Home() {
@@ -41,7 +41,7 @@ export default function Home() {
         icon: 'error', 
         title: 'SYSTEM ERROR', 
         text: err.response?.data?.detail || err.message, 
-        background: '#000', 
+        background: '#050505', 
         color: '#f87171' 
       });
     } finally {
@@ -64,7 +64,7 @@ export default function Home() {
       localStorage.setItem('saturnz_creds', JSON.stringify(newCreds));
       setCreds(newCreds);
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'CONNECTION REFUSED', text: 'Cek URL atau API Key', background: '#000', color: '#f87171' });
+      Swal.fire({ icon: 'error', title: 'ACCESS DENIED', text: 'Invalid Host/Keys', background: '#050505', color: '#f87171' });
     } finally {
       setLoading(false);
     }
@@ -72,25 +72,25 @@ export default function Home() {
 
   const logout = () => { localStorage.removeItem('saturnz_creds'); setCreds(null); };
 
-  // --- FITUR: QUICK DEPLOY (MANUAL INPUT + AUTO COPY) ---
+  // --- ACTIONS ---
   const handleAutoDeploy = async () => {
     const { value: formValues } = await Swal.fire({
-      title: 'QUICK DEPLOY (NODEJS)',
+      title: 'DEPLOY NODE.JS',
       html:
-        '<label style="color:#06b6d4; font-size:12px; display:block; text-align:left;">USERNAME</label>' +
-        '<input id="sw-user" class="swal2-input" placeholder="ex: saturnz" style="background:#111; color:#fff; border:1px solid #333; margin-top:5px;">' +
-        '<label style="color:#06b6d4; font-size:12px; display:block; text-align:left; margin-top:10px;">PASSWORD</label>' +
-        '<input id="sw-pass" class="swal2-input" type="password" placeholder="***" style="background:#111; color:#fff; border:1px solid #333; margin-top:5px;">',
-      background: '#050505',
-      color: '#06b6d4',
+        '<div style="text-align:left; color:#a5f3fc; font-size:12px; font-weight:bold; margin-bottom:5px;">USERNAME</div>' +
+        '<input id="sw-user" class="swal2-input" placeholder="ex: saturnz" style="background:#0f172a; color:#fff; border:1px solid #334155; margin:0; width:100%; box-sizing:border-box;">' +
+        '<div style="text-align:left; color:#a5f3fc; font-size:12px; font-weight:bold; margin-top:15px; margin-bottom:5px;">PASSWORD</div>' +
+        '<input id="sw-pass" class="swal2-input" type="password" placeholder="••••••" style="background:#0f172a; color:#fff; border:1px solid #334155; margin:0; width:100%; box-sizing:border-box;">',
+      background: '#020617',
+      color: '#fff',
       showCancelButton: true,
-      confirmButtonText: 'EXECUTE',
-      confirmButtonColor: '#06b6d4',
-      cancelButtonColor: '#333',
+      confirmButtonText: 'LAUNCH INSTANCE',
+      confirmButtonColor: '#0891b2',
+      cancelButtonColor: '#334155',
       preConfirm: () => {
         const username = document.getElementById('sw-user').value;
         const password = document.getElementById('sw-pass').value;
-        if (!username || !password) return Swal.showValidationMessage('Isi Username & Password!');
+        if (!username || !password) return Swal.showValidationMessage('Credentials Missing');
         return { username, password };
       }
     });
@@ -101,13 +101,13 @@ export default function Home() {
         navigator.clipboard.writeText(result.detail);
         Swal.fire({
           icon: 'success',
-          title: 'DEPLOYED & COPIED',
-          text: result.detail,
-          background: '#000',
-          color: '#06b6d4',
+          title: 'DEPLOYED',
+          text: 'Credentials copied to clipboard.',
+          background: '#020617',
+          color: '#22d3ee',
           toast: true,
           position: 'top-end',
-          timer: 5000,
+          timer: 4000,
           showConfirmButton: false,
           timerProgressBar: true
         });
@@ -115,64 +115,81 @@ export default function Home() {
     }
   };
 
-  // --- FITUR: PRUNE OFFLINE (VALIDASI PTLC) ---
   const handlePrune = () => {
-    if (!creds.ptlc) {
-      return Swal.fire({
-        icon: 'error',
-        title: 'PTLC MISSING',
-        text: 'Masukkan Client API Key (PTLC) saat login untuk menggunakan fitur ini.',
-        background: '#000',
-        color: '#f87171'
-      });
-    }
+    if (!creds.ptlc) return Swal.fire({ icon: 'error', title: 'PTLC MISSING', text: 'Client API Key required.', background: '#050505', color: '#f87171' });
 
     Swal.fire({
-      title: 'PRUNE PROTOCOL',
-      text: 'Scan & Hapus semua server OFFLINE?',
+      title: 'PRUNE OFFLINE?',
+      text: 'This will destroy all offline servers permanently.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ea580c',
-      cancelButtonColor: '#333',
+      cancelButtonColor: '#334155',
       confirmButtonText: 'START SCAN',
-      background: '#050505',
+      background: '#020617',
       color: '#fff'
     }).then(async (result) => {
       if (result.isConfirmed) {
         const res = await callApi('delete_offline');
-        if (res) {
-          Swal.fire({
-            title: 'CLEANUP REPORT',
-            text: res.msg,
-            icon: 'success',
-            background: '#000',
-            color: '#06b6d4'
-          });
-        }
+        if (res) Swal.fire({ title: 'REPORT', text: res.msg, icon: 'success', background: '#020617', color: '#22d3ee' });
       }
     });
   };
 
-  // --- FILTER SEARCH ---
   const filteredItems = (view === 'servers' ? data.servers : data.users).filter(item => {
     const name = view === 'servers' ? item.attributes.name : item.attributes.email;
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  // --- RENDER LOGIN SCREEN ---
+  // --- BACKGROUND COMPONENT ---
+  const Background = () => (
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#020617]">
+      {/* Grid Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)] opacity-20"></div>
+      {/* Glowing Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] animate-pulse"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse delay-1000"></div>
+    </div>
+  );
+
+  // --- RENDER LOGIN ---
   if (!creds) return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 font-mono text-white">
-      <div className="w-full max-w-md bg-gray-900/40 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-2xl">
-        <div className="flex flex-col items-center mb-6">
-          <Terminal size={40} className="text-cyan-400 mb-2 animate-pulse" />
-          <h1 className="text-2xl font-black tracking-tighter">SATURNZ-X LOGIN</h1>
+    <div className="min-h-screen flex items-center justify-center font-sans relative text-white">
+      <Background />
+      <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 p-10 rounded-3xl shadow-2xl relative z-10 mx-4">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(6,182,212,0.5)]">
+            <Terminal size={32} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">SATURNZ-X</h1>
+          <p className="text-xs text-slate-400 tracking-[0.3em] font-bold mt-2 uppercase">Command Center</p>
         </div>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input name="host" required placeholder="Panel URL (https://panel.xy.com)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
-          <input name="ptla" required placeholder="API Key (PTLA)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
-          <input name="ptlc" placeholder="API Key (PTLC) - Opsional (Wajib utk Prune)" className="w-full bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all" />
-          <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-black py-4 rounded-xl transition-all flex justify-center items-center gap-2">
-            {loading ? <Loader2 className="animate-spin" /> : 'CONNECT SYSTEM'}
+        
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1">
+             <label className="text-[10px] font-bold text-cyan-500 uppercase ml-1">Host Endpoint</label>
+             <div className="relative">
+                <Globe className="absolute left-4 top-3.5 text-slate-500" size={16} />
+                <input name="host" required placeholder="https://panel.example.com" className="w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all placeholder:text-slate-700" />
+             </div>
+          </div>
+          <div className="space-y-1">
+             <label className="text-[10px] font-bold text-cyan-500 uppercase ml-1">Application Key (PTLA)</label>
+             <div className="relative">
+                <Key className="absolute left-4 top-3.5 text-slate-500" size={16} />
+                <input name="ptla" required placeholder="ptla_xxxxxxxx" className="w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all placeholder:text-slate-700" />
+             </div>
+          </div>
+          <div className="space-y-1">
+             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Client Key (PTLC - Optional)</label>
+             <div className="relative">
+                <ShieldAlert className="absolute left-4 top-3.5 text-slate-500" size={16} />
+                <input name="ptlc" placeholder="ptlc_xxxxxxxx" className="w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all placeholder:text-slate-700" />
+             </div>
+          </div>
+          
+          <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl transition-all flex justify-center items-center gap-2 shadow-lg shadow-cyan-900/20 mt-4">
+            {loading ? <Loader2 className="animate-spin" /> : 'INITIALIZE UPLINK'}
           </button>
         </form>
       </div>
@@ -181,118 +198,139 @@ export default function Home() {
 
   // --- RENDER DASHBOARD ---
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-300 font-sans p-4 md:p-10 relative overflow-hidden">
+    <div className="min-h-screen text-slate-300 font-sans relative overflow-hidden flex flex-col">
+      <Background />
       <style jsx>{`
-        @keyframes typing { from { width: 0 } to { width: 100% } }
-        .typewriter { overflow: hidden; white-space: nowrap; border-right: 3px solid #06b6d4; animation: typing 2s steps(20, end), blink .75s step-end infinite; }
-        @keyframes blink { from, to { border-color: transparent } 50% { border-color: #06b6d4 } }
+        @keyframes scan { from { width: 0 } to { width: 100% } }
+        .scanline { border-bottom: 2px solid #06b6d4; animation: scan 3s infinite linear; opacity: 0.5; }
       `}</style>
 
-      <div className="max-w-6xl mx-auto relative z-10">
+      {/* HEADER & NAV */}
+      <nav className="relative z-10 border-b border-white/5 bg-slate-950/30 backdrop-blur-md sticky top-0">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+           <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-cyan-500/10 rounded-lg flex items-center justify-center border border-cyan-500/20">
+                <Terminal className="text-cyan-400" size={20} />
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-white tracking-tight">SATURNZ-X</h1>
+                <div className="flex items-center gap-1.5">
+                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                   <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">System Online</span>
+                </div>
+              </div>
+           </div>
+
+           <div className="flex gap-2">
+              <button onClick={handleAutoDeploy} className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-lg hover:bg-cyan-500 hover:text-white transition-all text-xs font-bold uppercase tracking-wider">
+                 <Zap size={14} /> Deploy Node
+              </button>
+              <button onClick={handlePrune} className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500 hover:text-white transition-all text-xs font-bold uppercase tracking-wider">
+                 <Activity size={14} /> Prune
+              </button>
+              <button onClick={() => Swal.fire({title:'NUKE?', text:'Destroy everything except Admins?', icon:'warning', showCancelButton:true, confirmButtonColor:'#d33', background:'#000', color:'#fff'}).then(r => r.isConfirmed && callApi('nuke_all', {confirm:'CONFIRM'}))} className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all text-xs font-bold uppercase">
+                 Nuke
+              </button>
+              <button onClick={logout} className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:bg-white hover:text-black transition-all">
+                 <LogOut size={16} />
+              </button>
+           </div>
+        </div>
+      </nav>
+
+      {/* MAIN CONTENT */}
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
         
-        {/* HEADER */}
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/5 p-6 rounded-3xl border border-white/5 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-2xl"><Terminal size={24} /></div>
-            <div>
-              <h1 className="text-2xl font-black text-white typewriter">SATURNZ-X MANAGER</h1>
-              <p className="text-[9px] text-cyan-500 tracking-widest font-bold uppercase">NodeJS Deployer Active</p>
-            </div>
-          </div>
-          <div className="flex gap-2 flex-wrap justify-center">
-            
-            {/* Quick Deploy */}
-            <button onClick={handleAutoDeploy} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-black rounded-xl text-xs font-black transition-all shadow-lg shadow-cyan-900/20">
-              <Zap size={14} fill="currentColor" /> QUICK DEPLOY
-            </button>
-            
-            {/* Prune Offline */}
-            <button onClick={handlePrune} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-orange-500/20 hover:text-orange-400 transition-all text-[10px] font-bold">
-              PRUNE
-            </button>
-            
-            {/* Nuke All */}
-            <button onClick={() => 
-              Swal.fire({
-                title: 'NUKE PANEL', 
-                text: 'Hapus SEMUA Server & User (Kecuali Admin)?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#333',
-                confirmButtonText: 'CONFIRM NUKE',
-                background: '#000',
-                color: '#f87171'
-              }).then((res) => {
-                if(res.isConfirmed) callApi('nuke_all', { confirm: 'CONFIRM' });
-              })
-            } className="px-4 py-2 bg-red-900/10 border border-red-900/30 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-all text-[10px] font-bold">
-              NUKE
-            </button>
-
-            {/* Logout */}
-            <button onClick={logout} className="p-2.5 bg-gray-800 text-gray-400 border border-gray-700 rounded-xl hover:bg-white hover:text-black transition-all">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </header>
-
-        {/* SEARCH BAR */}
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={18} />
-          <input 
-            type="text" 
-            placeholder={`Filter ${view}...`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-cyan-500/30 outline-none transition-all placeholder:text-gray-700"
-          />
+        {/* STATS CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between group hover:border-cyan-500/30 transition-all">
+              <div>
+                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Nodes</p>
+                 <p className="text-4xl font-black text-white mt-1 group-hover:text-cyan-400 transition-colors">{data.servers.length}</p>
+              </div>
+              <div className="p-4 bg-cyan-500/10 rounded-xl text-cyan-500 group-hover:scale-110 transition-transform"><Cpu size={32}/></div>
+           </div>
+           <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between group hover:border-purple-500/30 transition-all">
+              <div>
+                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Users</p>
+                 <p className="text-4xl font-black text-white mt-1 group-hover:text-purple-400 transition-colors">{data.users.length}</p>
+              </div>
+              <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500 group-hover:scale-110 transition-transform"><Users size={32}/></div>
+           </div>
         </div>
 
-        {/* DATA TABLE */}
-        <div className="bg-gray-900/30 border border-white/5 rounded-[32px] overflow-hidden backdrop-blur-xl">
-          <div className="flex bg-black/40 p-1.5 gap-1.5">
-            <button onClick={() => setView('servers')} className={`flex-1 py-3 rounded-2xl text-[10px] font-black tracking-widest transition-all ${view === 'servers' ? 'bg-cyan-500 text-black' : 'text-gray-500'}`}>SERVERS ({data.servers.length})</button>
-            <button onClick={() => setView('users')} className={`flex-1 py-3 rounded-2xl text-[10px] font-black tracking-widest transition-all ${view === 'users' ? 'bg-cyan-500 text-black' : 'text-gray-500'}`}>USERS ({data.users.length})</button>
-          </div>
-
-          <div className="p-4 overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-gray-500 text-[9px] uppercase tracking-widest border-b border-white/5">
-                  <th className="pb-4 px-2">Identification</th>
-                  <th className="pb-4 px-2">Label / Email</th>
-                  <th className="pb-4 px-2 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 text-sm">
-                {filteredItems.map((item) => (
-                  <tr key={item.attributes.id} className="group hover:bg-white/[0.02] transition-all">
-                    <td className="py-4 px-2 font-mono text-cyan-600 text-xs">#{item.attributes.id}</td>
-                    <td className="py-4 px-2 font-bold text-white">
-                      {view === 'servers' ? item.attributes.name : item.attributes.email}
-                    </td>
-                    <td className="py-4 px-2 text-right">
-                      <button 
-                        onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })} 
-                        className="p-2 text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredItems.length === 0 && (
-                  <tr>
-                    <td colSpan="3" className="text-center py-10 text-gray-600 text-xs tracking-widest italic">NO MATCHING DATA FOUND</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        {/* TOOLBAR & SEARCH */}
+        <div className="flex flex-col md:flex-row gap-4">
+           <div className="bg-slate-900/40 border border-white/5 p-1 rounded-xl flex gap-1 backdrop-blur-sm">
+              <button onClick={() => setView('servers')} className={`px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${view==='servers' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/20' : 'text-slate-500 hover:text-white'}`}>Servers</button>
+              <button onClick={() => setView('users')} className={`px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${view==='users' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'text-slate-500 hover:text-white'}`}>Users</button>
+           </div>
+           <div className="flex-1 relative">
+              <Search className="absolute left-4 top-3 text-slate-500" size={18} />
+              <input 
+                type="text" 
+                placeholder={`Search database for ${view}...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-full bg-slate-900/40 border border-white/5 rounded-xl pl-12 pr-4 text-sm focus:border-cyan-500/50 outline-none text-slate-300 placeholder:text-slate-600 transition-all"
+              />
+           </div>
         </div>
-        
-      </div>
+
+        {/* TABLE DATA */}
+        <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden backdrop-blur-md min-h-[400px]">
+           <div className="overflow-x-auto">
+             <table className="w-full text-left border-collapse">
+               <thead>
+                 <tr className="bg-white/5 text-slate-400 text-[10px] uppercase tracking-widest border-b border-white/5">
+                   <th className="p-4 font-bold">Identity</th>
+                   <th className="p-4 font-bold">Details</th>
+                   <th className="p-4 font-bold">Status</th>
+                   <th className="p-4 font-bold text-right">Actions</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-white/5 text-sm">
+                 {filteredItems.map((item) => (
+                   <tr key={item.attributes.id} className="group hover:bg-white/[0.02] transition-colors">
+                     <td className="p-4 font-mono text-cyan-500/80 text-xs">#{item.attributes.id}</td>
+                     <td className="p-4 font-medium text-white">
+                        <div className="flex items-center gap-3">
+                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${view==='servers' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                              {view==='servers' ? <Server size={14}/> : <Users size={14}/>}
+                           </div>
+                           {view === 'servers' ? item.attributes.name : item.attributes.email}
+                        </div>
+                     </td>
+                     <td className="p-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${item.attributes.root_admin ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                           {view === 'servers' ? 'Node '+item.attributes.node : (item.attributes.root_admin ? 'Admin' : 'Active')}
+                        </span>
+                     </td>
+                     <td className="p-4 text-right">
+                       <button 
+                         onClick={() => callApi(view === 'servers' ? 'delete_server' : 'delete_user', { id: item.attributes.id })} 
+                         className="p-2 text-slate-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                       >
+                         <Trash2 size={16} />
+                       </button>
+                     </td>
+                   </tr>
+                 ))}
+                 {filteredItems.length === 0 && (
+                   <tr>
+                     <td colSpan="4" className="text-center py-20">
+                        <div className="flex flex-col items-center opacity-30">
+                           <ShieldAlert size={48} className="mb-4 text-slate-500"/>
+                           <p className="text-slate-500 text-sm font-mono uppercase tracking-widest">No Records Found</p>
+                        </div>
+                     </td>
+                   </tr>
+                 )}
+               </tbody>
+             </table>
+           </div>
+        </div>
+      </main>
     </div>
   );
 }
